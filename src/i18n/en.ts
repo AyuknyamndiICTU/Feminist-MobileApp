@@ -38,7 +38,7 @@ export const en = {
   'help.title': 'Get help now',
   'help.hotlines': 'Free emergency numbers',
   'help.smsTitle': 'Cannot speak? Send a coded SMS',
-  'help.smsBody': 'Works without internet. The message contains only codes, no names. Delete it from your sent messages afterwards.',
+  'help.smsBody': 'Works without internet. The message contains only codes, no names. If your phone asks which app to use, choose Messages (not WhatsApp). Afterwards, delete the message, or clear the text if you did not send it, so no draft is kept.',
   'help.smsButton': 'Prepare the SMS',
   'help.ussdTitle': 'No credit / basic phone',
   'help.ussdBody': 'Dial {code} for a short menu (free, no internet).',

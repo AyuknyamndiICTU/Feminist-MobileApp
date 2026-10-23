@@ -1,5 +1,6 @@
 import type { ReactNode } from 'react';
 import { Pressable, ScrollView, StyleSheet, Switch, Text, TextInput, View, type TextInputProps } from 'react-native';
+import { useSafeAreaInsets } from 'react-native-safe-area-context';
 
 export const colors = {
   primary: '#5B2A86',
@@ -16,9 +17,22 @@ export const colors = {
   chip: '#EFE9F5',
 };
 
-export function Screen({ children }: { children: ReactNode }) {
+/**
+ * Scrollable page. Android 16 draws apps edge-to-edge, so content is padded by the system bar
+ * insets; `safeTop` is for screens without a navigation header.
+ */
+export function Screen({ children, safeTop }: { children: ReactNode; safeTop?: boolean }) {
+  const insets = useSafeAreaInsets();
   return (
-    <ScrollView style={s.screen} contentContainerStyle={s.screenContent} keyboardShouldPersistTaps="handled">
+    <ScrollView
+      style={s.screen}
+      contentContainerStyle={[
+        s.screenContent,
+        { paddingBottom: 48 + insets.bottom },
+        safeTop ? { paddingTop: 16 + insets.top } : null,
+      ]}
+      keyboardShouldPersistTaps="handled"
+    >
       {children}
     </ScrollView>
   );
@@ -204,7 +218,7 @@ export function Pill({ text, color }: { text: string; color: string }) {
 
 const s = StyleSheet.create({
   screen: { flex: 1, backgroundColor: colors.bg },
-  screenContent: { padding: 16, paddingBottom: 48, maxWidth: 720, width: '100%', alignSelf: 'center' },
+  screenContent: { padding: 16, maxWidth: 720, width: '100%', alignSelf: 'center' },
   title: { fontSize: 24, fontWeight: '700', color: colors.text, marginBottom: 8 },
   h2: { fontSize: 18, fontWeight: '700', color: colors.primaryDark, marginTop: 16, marginBottom: 8 },
   body: { fontSize: 16, lineHeight: 23, color: colors.text, marginBottom: 8 },

@@ -40,7 +40,7 @@ export const fr: Record<TKey, string> = {
   'help.title': 'Obtenir de l’aide',
   'help.hotlines': 'Numéros d’urgence gratuits',
   'help.smsTitle': 'Impossible de parler ? Envoyez un SMS codé',
-  'help.smsBody': 'Fonctionne sans internet. Le message ne contient que des codes, aucun nom. Supprimez-le ensuite de vos messages envoyés.',
+  'help.smsBody': 'Fonctionne sans internet. Le message ne contient que des codes, aucun nom. Si le téléphone demande quelle application utiliser, choisissez Messages (pas WhatsApp). Ensuite, supprimez le message, ou effacez le texte si vous ne l’avez pas envoyé, afin qu’aucun brouillon ne soit conservé.',
   'help.smsButton': 'Préparer le SMS',
   'help.ussdTitle': 'Pas de crédit / téléphone simple',
   'help.ussdBody': 'Composez {code} pour un menu court (gratuit, sans internet).',

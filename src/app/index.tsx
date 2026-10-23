@@ -3,8 +3,10 @@
  * opens the hidden app. A wrong code simply behaves like a normal calculation.
  */
 import { router } from 'expo-router';
+import { StatusBar } from 'expo-status-bar';
 import { useEffect, useState } from 'react';
 import { Pressable, StyleSheet, Text, View } from 'react-native';
+import { useSafeAreaInsets } from 'react-native-safe-area-context';
 
 import { CONFIG } from '../config';
 import { evaluate, formatResult } from '../lib/calc';
@@ -22,6 +24,7 @@ const OPS = new Set(['÷', '×', '−', '+']);
 
 export default function Calculator() {
   const { unlocked, unlock } = useApp();
+  const insets = useSafeAreaInsets();
   const [expr, setExpr] = useState('');
   const [result, setResult] = useState('0');
 
@@ -63,7 +66,8 @@ export default function Calculator() {
   };
 
   return (
-    <View style={s.root}>
+    <View style={[s.root, { paddingTop: 12 + insets.top, paddingBottom: 12 + insets.bottom }]}>
+      <StatusBar style="light" />
       <View style={s.display}>
         <Text style={s.expr} numberOfLines={1} adjustsFontSizeToFit>{expr || ' '}</Text>
         <Text style={s.result} numberOfLines={1} adjustsFontSizeToFit accessibilityLiveRegion="polite">{result}</Text>
@@ -96,7 +100,7 @@ export default function Calculator() {
 }
 
 const s = StyleSheet.create({
-  root: { flex: 1, backgroundColor: '#000', justifyContent: 'flex-end', padding: 12 },
+  root: { flex: 1, backgroundColor: '#000', justifyContent: 'flex-end', paddingHorizontal: 12 },
   display: { paddingHorizontal: 12, paddingBottom: 16, alignItems: 'flex-end' },
   expr: { color: '#9a9a9a', fontSize: 28 },
   result: { color: '#fff', fontSize: 64, fontWeight: '300' },

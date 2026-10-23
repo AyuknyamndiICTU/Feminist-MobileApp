@@ -21,7 +21,7 @@ export default function Setup() {
   };
 
   return (
-    <Screen>
+    <Screen safeTop>
       <Title>{t('setup.title')}</Title>
       <Choice<Lang>
         label={t('setup.language')}
