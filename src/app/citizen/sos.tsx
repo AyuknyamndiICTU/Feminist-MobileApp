@@ -1,6 +1,7 @@
 import { useCallback, useEffect, useRef, useState } from 'react';
 import { Text } from 'react-native';
 
+import type { TestEvent } from '../../../modules/sos-trigger';
 import { LocationPicker } from '../../components/LocationPicker';
 import { ContactsEditor } from '../../components/sos/ContactsEditor';
 import { VoiceSetup } from '../../components/sos/VoiceSetup';
@@ -50,6 +51,7 @@ export default function SosSetup() {
   const [running, setRunning] = useState(false);
   const [msg, setMsg] = useState<Msg>();
   const [testing, setTesting] = useState(false);
+  const [testLeftMs, setTestLeftMs] = useState(0);
   const [testLog, setTestLog] = useState<string[]>([]);
   const current = useRef<SosSettings | null>(null);
   const max = CONFIG.sos.maxContacts;
@@ -70,27 +72,37 @@ export default function SosSetup() {
 
   useEffect(() => {
     if (!sosNative) return;
-    const log = (line: string) => setTestLog((l) => [line, ...l].slice(0, 6));
+    const line = (e: TestEvent) => {
+      const time = new Date(e.at).toLocaleTimeString(lang);
+      if (e.type === 'voice') {
+        return `${time} · ${t('sos.test.voiceScore', { score: e.score.toFixed(2), threshold: CONFIG.sos.voice.threshold.toFixed(2) })}`;
+      }
+      return `${time} · ${t(e.source === 'cancel' ? 'sos.test.cancel' : e.source === 'voice' ? 'sos.test.voice' : 'sos.test.volume')}`;
+    };
+    // Locking the screen locks the app, so the results of a test run are read back from the service.
+    const restore = () => {
+      const st = sosNative!.getTestStatus();
+      setTesting(st.active);
+      setTestLeftMs(st.remainingMs);
+      setTestLog(st.events.slice().reverse().map(line));
+    };
+    restore();
     const sub = sosNative.addListener('onSosEvent', (e) => {
       if (e.type === 'armed') setRunning(true);
       else if (e.type === 'disarmed') setRunning(false);
-      else if (e.type === 'testMode') setTesting(e.enabled);
-      else if (e.type === 'test') log(t(e.source === 'cancel' ? 'sos.test.cancel' : e.source === 'voice' ? 'sos.test.voice' : 'sos.test.volume'));
-      else if (e.type === 'voice' && !e.accepted) {
-        log(t('sos.test.voiceScore', { score: e.score.toFixed(2), threshold: CONFIG.sos.voice.threshold.toFixed(2) }));
-      }
+      else if (e.type === 'testMode' || e.type === 'test' || e.type === 'voice') restore();
     });
     return () => sub.remove();
-  }, [t]);
+  }, [t, lang]);
 
   useEffect(() => {
     if (!testing) return;
     const timer = setTimeout(() => {
       setTesting(false);
       setTestLog((l) => [t('sos.test.ended'), ...l]);
-    }, CONFIG.sos.testModeMs);
+    }, testLeftMs);
     return () => clearTimeout(timer);
-  }, [testing, t]);
+  }, [testing, testLeftMs, t]);
 
   /**
    * Every change is saved at once; an armed service is reconfigured, or disarmed if it can no longer

@@ -27,7 +27,7 @@ interface Props {
   onEnrolled: (vp: Voiceprint) => void;
   onRemove: () => void;
   /** Pause (true) or resume (false) the background listener so enrolment cannot fire a real SOS. */
-  onBusy: (busy: boolean) => void;
+  onBusy: (busy: boolean) => Promise<void>;
   t: Translator;
 }
 
@@ -81,12 +81,13 @@ export function VoiceSetup({ lang, voiceprint, onEnrolled, onRemove, onBusy, t }
   const record = async () => {
     const perm = await requestPermissions(['mic']);
     if (!perm.mic) return setMsg({ kind: 'danger', text: t('voice.micDenied') });
-    if (!paused.current) {
-      paused.current = true;
-      onBusy(true);
-    }
+    // The background listener is paused only while recording, so it cannot hear the phrase and
+    // send a real SOS; the SOS is back on as soon as each recording ends.
+    paused.current = true;
+    await onBusy(true);
     setRecording(true);
     setMsg({ kind: 'info', text: t('voice.listening') });
+    let enrolled = false;
     try {
       const s = await recordVoiceSample(lang);
       if (!s.text) return setMsg({ kind: 'warn', text: t('voice.nothing') });
@@ -102,12 +103,17 @@ export function VoiceSetup({ lang, voiceprint, onEnrolled, onRemove, onBusy, t }
       setMsg(undefined);
       setRedo(false);
       // The parent saves the voiceprint and re-arms the service with it.
+      enrolled = true;
       paused.current = false;
       onEnrolled({ lang, vector: averageVoiceprint(next), samples: next.length, enrolledAt: new Date().toISOString() });
     } catch {
       setMsg({ kind: 'danger', text: t('common.error') });
     } finally {
       setRecording(false);
+      if (!enrolled && paused.current) {
+        paused.current = false;
+        await onBusy(false);
+      }
     }
   };
 
