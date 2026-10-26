@@ -18,7 +18,7 @@ declare class SosTriggerModule extends NativeModule<SosTriggerEvents> {
   getTestStatus(): TestStatus;
   isModelReady(name: string): boolean;
   downloadModel(name: string, url: string, sha256: string | null): Promise<void>;
-  recordVoiceSample(model: string, speakerModel: string, timeoutMs: number): Promise<VoiceSample>;
+  recordVoiceSample(model: string, speakerModel: string, timeoutMs: number, grammarJson: string): Promise<VoiceSample>;
   stopRecording(): void;
   endEnrollment(): Promise<void>;
   /** JSON array of alerts recorded by the service, removed from native storage once taken. */

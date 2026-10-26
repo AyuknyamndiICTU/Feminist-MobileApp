@@ -101,12 +101,29 @@ export function isValidSosAlert(a: unknown): a is SosAlert {
 }
 
 /**
- * Phrases accepted by the voice trigger. Recognition uses the full model vocabulary (not a tiny
- * grammar, which forces look-alike sentences onto the phrase), then the whole utterance must match.
+ * Phrases accepted by the voice trigger. The whole utterance must match one of them.
  */
 export const VOICE_PHRASES: Record<Lang, string[]> = {
   en: ['please help me'],
   fr: ["aidez moi s'il vous plaît"],
+};
+
+/**
+ * What the recogniser may hear: the phrase, look-alike phrases and "[unk]" for everything else.
+ * The small offline models mishear accented speech when they choose from their whole vocabulary
+ * (on a real phone "please help me" came out as "in the first one for with"). Look-alike phrases
+ * give similar sentences somewhere else to land, so they are not forced onto the phrase; the speaker
+ * check still rejects other people.
+ */
+export const VOICE_GRAMMAR: Record<Lang, string[]> = {
+  en: [
+    'please help me', 'please', 'help me', 'help', 'please tell me', 'please let me', 'please give me',
+    'please call me', 'please hear me', 'please hold me', 'tell me', 'can you', 'the', 'with', '[unk]',
+  ],
+  fr: [
+    "aidez moi s'il vous plaît", 'aidez moi', "s'il vous plaît", 'aidez', 'au secours', 'laissez moi',
+    "dites moi s'il vous plaît", "excusez moi s'il vous plaît", 'merci', 'oui', 'non', '[unk]',
+  ],
 };
 
 export const VOICE_PHRASE_LABEL: Bilingual = { en: '“Please, help me”', fr: '« Aidez-moi, s’il vous plaît »' };
@@ -337,6 +354,7 @@ export interface NativeSosConfig {
     model: string;
     speakerModel: string;
     phrases: string[];
+    grammar: string[];
     voiceprint: number[];
     threshold: number;
     minFrames: number;
@@ -389,6 +407,7 @@ export function buildNativeSosConfig(s: SosSettings, lang: Lang, o: NativeConfig
           model: o.voiceModel,
           speakerModel: o.speakerModel,
           phrases: VOICE_PHRASES[voiceLang],
+          grammar: VOICE_GRAMMAR[voiceLang],
           voiceprint: s.voiceprint!.vector,
           threshold: o.voiceThreshold,
           minFrames: o.voiceMinFrames,
