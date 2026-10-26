@@ -20,3 +20,13 @@ export interface VoiceSample {
   vector: number[];
   frames: number;
 }
+
+export type TestEvent =
+  | { type: 'test'; source: 'volume' | 'voice' | 'cancel'; at: number }
+  | { type: 'voice'; score: number; accepted: boolean; at: number };
+
+export interface TestStatus {
+  active: boolean;
+  remainingMs: number;
+  events: TestEvent[];
+}

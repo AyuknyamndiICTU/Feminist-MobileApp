@@ -110,6 +110,17 @@ class VoiceMatchTest {
     gate.update(quiet)
     assertEquals(2, gate.silentChunks)
   }
+
+  @Test
+  fun `steady background noise does not hold the gate open`() {
+    val gate = EnergyGate()
+    val fan = ShortArray(1600) { if (it % 2 == 0) 400 else -400 }
+    val voice = ShortArray(1600) { if (it % 2 == 0) 3000 else -3000 }
+    repeat(40) { assertFalse(gate.update(fan)) }
+    assertTrue(gate.update(voice))
+    repeat(12) { gate.update(fan) }
+    assertEquals(12, gate.silentChunks)
+  }
 }
 
 class SosConfigTest {
