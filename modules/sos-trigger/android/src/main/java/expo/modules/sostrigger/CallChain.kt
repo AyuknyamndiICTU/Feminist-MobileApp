@@ -11,10 +11,12 @@ import android.telecom.TelecomManager
 import android.telephony.TelephonyManager
 
 /**
- * Calls each number in turn (emergency contacts, then the 1166 hotline). The next call starts when
- * the previous one ends; Android cannot tell whether a call was answered. If call state cannot be
- * observed, only the first number is called so calls never overlap. Official emergency numbers
- * cannot be auto-dialled by apps (the system shows the dialer instead), so a watchdog moves on.
+ * Calls each number in turn (emergency contacts, then the 1166 hotline). The next call starts a
+ * few seconds after the previous one ends; Android cannot tell whether a call was answered. During
+ * a call the phone app owns the volume keys, so the gap is what lets the user stop the chain with
+ * volume-UP × 3 right after hanging up. If call state cannot be observed, only the first number is
+ * called so calls never overlap. Official emergency numbers cannot be auto-dialled by apps (the
+ * system shows the dialer instead), so a watchdog moves on.
  */
 class CallChain(private val ctx: Context, private val numbers: List<String>, private val onDone: () -> Unit) {
   private val main = Handler(Looper.getMainLooper())
@@ -89,6 +91,6 @@ class CallChain(private val ctx: Context, private val numbers: List<String>, pri
 
   private companion object {
     const val NO_CALL_TIMEOUT_MS = 25_000L
-    const val BETWEEN_CALLS_MS = 2_000L
+    const val BETWEEN_CALLS_MS = 6_000L
   }
 }

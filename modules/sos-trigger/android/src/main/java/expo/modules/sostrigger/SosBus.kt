@@ -20,7 +20,7 @@ object SosBus {
 object Haptics {
   val TRIGGERED = longArrayOf(0, 180)
   val CANCELLED = longArrayOf(0, 60, 120, 60)
-  val TEST = longArrayOf(0, 80, 100, 80, 100, 80)
+  val TEST = longArrayOf(0, 250, 150, 250, 150, 250)
 
   fun play(ctx: Context, pattern: LongArray) {
     runCatching {

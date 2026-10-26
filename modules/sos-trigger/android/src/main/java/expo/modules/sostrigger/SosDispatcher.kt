@@ -29,14 +29,37 @@ object SosDispatcher {
   private var chain: CallChain? = null
   private var wakeLock: PowerManager.WakeLock? = null
   private var testUntil = 0L
+  private val testEvents = ArrayList<Map<String, Any?>>()
 
   fun setTestMode(ctx: Context, enabled: Boolean) {
     val duration = ConfigStore.loadConfig(ctx)?.testModeMs ?: 120_000L
     testUntil = if (enabled) SystemClock.elapsedRealtime() + duration else 0L
+    if (enabled) synchronized(testEvents) { testEvents.clear() }
     SosBus.emit("testMode", mapOf("enabled" to enabled, "durationMs" to if (enabled) duration else 0L))
   }
 
   fun isTestMode() = SystemClock.elapsedRealtime() < testUntil
+
+  /**
+   * Test detections are kept here because locking the screen also locks the app: the results must
+   * still be there when the user comes back to the SOS screen.
+   */
+  fun recordTest(type: String, extra: Map<String, Any?>) {
+    val event = mapOf("type" to type, "at" to System.currentTimeMillis()) + extra
+    synchronized(testEvents) {
+      testEvents.add(event)
+      while (testEvents.size > 20) testEvents.removeAt(0)
+    }
+    SosBus.emit(type, extra)
+  }
+
+  fun testStatus(): Map<String, Any?> = synchronized(testEvents) {
+    mapOf(
+      "active" to isTestMode(),
+      "remainingMs" to (testUntil - SystemClock.elapsedRealtime()).coerceAtLeast(0L),
+      "events" to testEvents.toList(),
+    )
+  }
 
   fun isActive() = inProgress
 
@@ -45,7 +68,7 @@ object SosDispatcher {
     val app = ctx.applicationContext
     if (isTestMode() && source != "button") {
       Haptics.play(app, Haptics.TEST)
-      SosBus.emit("test", mapOf("source" to source))
+      recordTest("test", mapOf("source" to source))
       return
     }
     if (inProgress) return
@@ -89,7 +112,7 @@ object SosDispatcher {
     if (!inProgress) {
       if (isTestMode()) {
         Haptics.play(ctx.applicationContext, Haptics.CANCELLED)
-        SosBus.emit("test", mapOf("source" to "cancel"))
+        recordTest("test", mapOf("source" to "cancel"))
       }
       return false
     }
