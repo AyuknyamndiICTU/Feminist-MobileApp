@@ -97,9 +97,9 @@ class SosTriggerModule : Module() {
       }.start()
     }
 
-    AsyncFunction("recordVoiceSample") { model: String, speakerModel: String, timeoutMs: Int, promise: Promise ->
+    AsyncFunction("recordVoiceSample") { model: String, speakerModel: String, timeoutMs: Int, grammarJson: String, promise: Promise ->
       val ctx = context
-      Thread { recordSample(ctx, model, speakerModel, timeoutMs.toLong(), promise) }.start()
+      Thread { recordSample(ctx, model, speakerModel, timeoutMs.toLong(), grammarJson, promise) }.start()
     }
 
     Function("stopRecording") {
@@ -116,7 +116,7 @@ class SosTriggerModule : Module() {
   }
 
   /** Records until the first utterance (or timeout) and returns its text and speaker vector. */
-  private fun recordSample(ctx: Context, model: String, speakerModel: String, timeoutMs: Long, promise: Promise) {
+  private fun recordSample(ctx: Context, model: String, speakerModel: String, timeoutMs: Long, grammarJson: String, promise: Promise) {
     val engine = try {
       synchronized(enrollLock) {
         val key = "$model/$speakerModel"
@@ -139,6 +139,7 @@ class SosTriggerModule : Module() {
       onUtterance = { u -> synchronized(lock) { if (result == null) { result = u; lock.notifyAll() } } },
       onError = { e -> synchronized(lock) { error = e; lock.notifyAll() } },
       flushOnStop = true,
+      grammar = grammarJson.takeIf { it.isNotBlank() },
     )
     recording = listener
     listener.start()
