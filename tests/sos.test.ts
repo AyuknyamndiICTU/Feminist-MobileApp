@@ -105,11 +105,16 @@ describe('SOS messages', () => {
 });
 
 describe('voice trigger', () => {
-  it('accepts only the whole phrase (possibly repeated), ignoring accents and punctuation', () => {
+  it('accepts only the phrase words (any order, repeats), ignoring accents and punctuation', () => {
     expect(matchesPhrase('Please, help me!', VOICE_PHRASES.en)).toBe(true);
     expect(matchesPhrase('[unk] please help me please help me', VOICE_PHRASES.en)).toBe(true);
+    // Heard on a real phone (Samsung S22, accented English) for "Please, help me".
+    expect(matchesPhrase('help help me please', VOICE_PHRASES.en)).toBe(true);
     expect(matchesPhrase('please help me carry this', VOICE_PHRASES.en)).toBe(false);
+    expect(matchesPhrase('please help me with the dishes', VOICE_PHRASES.en)).toBe(false);
+    expect(matchesPhrase('please help me [unk] [unk]', VOICE_PHRASES.en)).toBe(false);
     expect(matchesPhrase('please tell me', VOICE_PHRASES.en)).toBe(false);
+    expect(matchesPhrase('help me', VOICE_PHRASES.en)).toBe(false);
     expect(matchesPhrase('aidez-moi s’il vous plait', VOICE_PHRASES.fr)).toBe(true);
     expect(matchesPhrase('aidez moi', VOICE_PHRASES.fr)).toBe(false);
     expect(matchesPhrase('', VOICE_PHRASES.en)).toBe(false);

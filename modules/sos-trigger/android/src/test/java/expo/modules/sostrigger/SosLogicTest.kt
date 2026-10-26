@@ -64,13 +64,16 @@ class VoiceMatchTest {
   private val fr = listOf("aidez moi s'il vous plaît")
 
   @Test
-  fun `whole utterance must be the phrase, possibly repeated`() {
+  fun `only the phrase words, in any order and possibly repeated`() {
     assertTrue(VoiceMatch.matchesPhrase("please help me", en))
     assertTrue(VoiceMatch.matchesPhrase("Please, help me!", en))
     assertTrue(VoiceMatch.matchesPhrase("[unk] please help me", en))
     assertTrue(VoiceMatch.matchesPhrase("please help me please help me", en))
+    assertTrue(VoiceMatch.matchesPhrase("help help me please", en))
     assertFalse(VoiceMatch.matchesPhrase("please help me carry this", en))
+    assertFalse(VoiceMatch.matchesPhrase("please help me [unk] [unk]", en))
     assertFalse(VoiceMatch.matchesPhrase("please tell me", en))
+    assertFalse(VoiceMatch.matchesPhrase("help me", en))
     assertFalse(VoiceMatch.matchesPhrase("", en))
   }
 
