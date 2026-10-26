@@ -140,12 +140,12 @@ class SosService : Service() {
           return@post
         }
         engine = loaded
-        voice = VoiceListener(loaded, ::onUtterance) { err ->
+        voice = VoiceListener(loaded, ::onUtterance, onError = { err ->
           main.post {
             if (gen == voiceGen) stopVoice()
             SosBus.emit("error", mapOf("detail" to err))
           }
-        }.also { it.start() }
+        }).also { it.start() }
       }
     }, "calc-load").start()
   }

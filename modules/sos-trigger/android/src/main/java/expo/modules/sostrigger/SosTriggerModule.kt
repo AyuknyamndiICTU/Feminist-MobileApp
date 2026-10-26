@@ -1,6 +1,7 @@
 package expo.modules.sostrigger
 
 import android.content.Context
+import android.util.Log
 import expo.modules.kotlin.Promise
 import expo.modules.kotlin.exception.Exceptions
 import expo.modules.kotlin.functions.Queues
@@ -137,6 +138,7 @@ class SosTriggerModule : Module() {
       engine,
       onUtterance = { u -> synchronized(lock) { if (result == null) { result = u; lock.notifyAll() } } },
       onError = { e -> synchronized(lock) { error = e; lock.notifyAll() } },
+      flushOnStop = true,
     )
     recording = listener
     listener.start()
@@ -148,8 +150,12 @@ class SosTriggerModule : Module() {
         lock.wait(left)
       }
     }
+    // Stopping also flushes a sentence still in progress into `result`.
     listener.stop()
     recording = null
+    // Levels only (no audio, no words): helps tell a quiet microphone from a recognition problem.
+    Log.i(TAG, "enrol sample: peakRms=${listener.peakRms.toInt()} speechChunks=${listener.speechChunks} " +
+      "gotText=${result?.text?.isNotEmpty() == true} frames=${result?.frames ?: 0}")
     val err = error
     if (err != null && result == null) {
       promise.reject("E_MIC", err, null)
@@ -173,5 +179,9 @@ class SosTriggerModule : Module() {
       enrollEngine = null
       enrollKey = null
     }
+  }
+
+  private companion object {
+    const val TAG = "CalcVoice"
   }
 }

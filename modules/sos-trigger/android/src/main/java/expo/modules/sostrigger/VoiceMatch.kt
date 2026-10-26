@@ -55,10 +55,16 @@ object VoiceMatch {
   }
 }
 
-/** Energy-based speech gate so the recogniser only decodes audio that may contain speech (battery). */
-class EnergyGate(private val minRms: Double = 120.0, private val ratio: Double = 2.5) {
-  private var floor = minRms / ratio
+/**
+ * Energy-based speech gate so the recogniser only decodes audio that may contain speech (battery).
+ * The noise floor is the quietest chunk of the last [window] chunks, so a steady background (fan,
+ * street) raises the threshold instead of keeping the gate open forever.
+ */
+class EnergyGate(private val minRms: Double = 80.0, private val ratio: Double = 2.5, private val window: Int = 30) {
+  private val history = ArrayDeque<Double>()
   var silentChunks = 0
+    private set
+  var lastRms = 0.0
     private set
 
   fun update(samples: ShortArray, length: Int = samples.size): Boolean {
@@ -66,13 +72,12 @@ class EnergyGate(private val minRms: Double = 120.0, private val ratio: Double =
     var sum = 0.0
     for (i in 0 until length) sum += samples[i].toDouble() * samples[i]
     val rms = sqrt(sum / length)
+    lastRms = rms
+    history.addLast(rms)
+    if (history.size > window) history.removeFirst()
+    val floor = history.min()
     val speech = rms > max(minRms, floor * ratio)
-    if (speech) {
-      silentChunks = 0
-    } else {
-      silentChunks++
-      floor = floor * 0.95 + rms * 0.05
-    }
+    silentChunks = if (speech) 0 else silentChunks + 1
     return speech
   }
 }
