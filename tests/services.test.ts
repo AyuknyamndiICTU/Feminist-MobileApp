@@ -5,6 +5,7 @@ import { MockNisServer } from '../src/services/mockServer';
 import { LocalRepository } from '../src/services/repository';
 import { SyncEngine } from '../src/services/sync';
 import type { CitizenReport } from '../src/domain/types';
+import type { SosAlert } from '../src/domain/sos';
 import { completeCase, fakeCipher, MemoryStore, seqRandom } from './helpers';
 
 function setup() {
@@ -147,6 +148,75 @@ describe('citizen report verification (Layer 4 → register)', () => {
     const a = await api.submitCitizenReport(citizenReport());
     const b = await api.submitCitizenReport(citizenReport());
     expect(b.trackingCode).toBe(a.trackingCode);
+  });
+});
+
+describe('hands-free SOS alerts (Layer 4 → responders)', () => {
+  const sosAlert = (over: Partial<SosAlert> = {}): SosAlert => ({
+    alertId: '3f2b8c1e-1111-4a5b-9c1d-000000000001',
+    triggeredAt: '2026-10-24T00:00:00.000Z',
+    source: 'volume',
+    location: { region: 'CE', department: 'MFO' },
+    geo: { lat: 3.86667, lng: 11.51667, accuracy: 20 },
+    callbackNumber: '699000000',
+    contactsNotified: 2,
+    ...over,
+  });
+
+  it('keeps emergency contacts and the voiceprint encrypted at rest', async () => {
+    const { raw, repo } = setup();
+    await repo.saveSosSettings({
+      ...(await repo.getSosSettings()),
+      contacts: [{ id: 'c1', name: 'Grace Mbah', phone: '677445566' }],
+      senderName: 'Amina',
+      voiceprint: { lang: 'en', vector: [0.123456, 0.654321], samples: 3, enrolledAt: '2026-10-24T00:00:00Z' },
+    });
+    const dump = [...raw.data.values()].join('');
+    for (const secret of ['Grace', '677445566', 'Amina', '0.123456']) expect(dump).not.toContain(secret);
+    expect((await repo.getSosSettings()).contacts[0].name).toBe('Grace Mbah');
+  });
+
+  it('queues alerts offline, delivers them once online and then deletes the local copy', async () => {
+    const { repo, sync, setOnline, raw } = setup();
+    await repo.enqueueSosAlerts([sosAlert(), sosAlert()]);
+    expect(await repo.listSosOutbox()).toHaveLength(1);
+    expect([...raw.data.values()].join('')).not.toContain('11.51667');
+
+    setOnline(false);
+    expect(await sync.flushSosAlerts()).toEqual({ pushed: 0, failed: 0, offline: true });
+    expect(await repo.listSosOutbox()).toHaveLength(1);
+
+    setOnline(true);
+    expect((await sync.flushSosAlerts()).pushed).toBe(1);
+    expect(await repo.listSosOutbox()).toHaveLength(0);
+  });
+
+  it('drops a malformed alert instead of blocking the queue', async () => {
+    const { repo, sync } = setup();
+    await repo.enqueueSosAlerts([sosAlert({ alertId: 'bad id!' }), sosAlert({ alertId: '3f2b8c1e-2222-4a5b-9c1d-000000000002' })]);
+    expect(await sync.flushSosAlerts()).toEqual({ pushed: 1, failed: 1, offline: false });
+    expect(await repo.listSosOutbox()).toHaveLength(0);
+  });
+
+  it('routes alerts by region, lets responders take charge, and is idempotent', async () => {
+    const { api } = setup();
+    await api.submitSosAlert(sosAlert());
+    await api.submitSosAlert(sosAlert());
+    await api.submitSosAlert(sosAlert({ alertId: '3f2b8c1e-3333-4a5b-9c1d-000000000003', location: {}, geo: undefined }));
+    const police = await api.login('POL-001', '1234');
+    const gendarme = await api.login('GEN-001', '1234');
+    const helpline = await api.login('HLP-001', '1234');
+
+    expect(await api.listSosAlerts(police)).toHaveLength(2);
+    expect((await api.listSosAlerts(gendarme)).map((a) => a.location)).toEqual([{}]);
+    expect(await api.listSosAlerts(helpline)).toHaveLength(2);
+    await expect(api.listSosAlerts(await api.login('HEA-001', '1234'))).rejects.toBeInstanceOf(ApiError);
+    await expect(api.acknowledgeSosAlert(gendarme, sosAlert().alertId)).rejects.toBeInstanceOf(ApiError);
+
+    const acked = await api.acknowledgeSosAlert(police, sosAlert().alertId);
+    expect(acked).toMatchObject({ status: 'ACKNOWLEDGED', handledBy: 'POL-001' });
+    expect((await api.acknowledgeSosAlert(helpline, sosAlert().alertId)).handledBy).toBe('POL-001');
+    await expect(api.submitSosAlert({ ...sosAlert(), geo: { lat: 999, lng: 0 } })).rejects.toBeInstanceOf(ApiError);
   });
 });
 

@@ -2,6 +2,7 @@
  * Contract between the mobile app and the national platform (Layer 2 interoperability bus).
  * The prototype ships an in-device mock; production points this at the BUCREP-hosted API gateway.
  */
+import type { ServerSosAlert, SosAlert } from '../domain/sos';
 import type {
   AgentSession,
   CitizenReport,
@@ -53,4 +54,8 @@ export interface NisApi {
   appendProcedureEvent(session: AgentSession, caseNumber: string, status: ProcedureStatus): Promise<RegisterRecord>;
   fetchRegister(session: AgentSession): Promise<RegisterRecord[]>;
   fetchAllReports(session: AgentSession): Promise<ServerCitizenReport[]>;
+  /** Hands-free SOS: routed to police, gendarmerie, MINPROFF and the 1166 helpline (idempotent on alertId). */
+  submitSosAlert(alert: SosAlert): Promise<{ receivedAt: string }>;
+  listSosAlerts(session: AgentSession): Promise<ServerSosAlert[]>;
+  acknowledgeSosAlert(session: AgentSession, alertId: string): Promise<ServerSosAlert>;
 }

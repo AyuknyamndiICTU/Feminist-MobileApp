@@ -24,6 +24,8 @@ export default function CitizenLayout() {
       <Stack.Screen name="my-reports" options={{ title: t('mine.title') }} />
       <Stack.Screen name="safety" options={{ title: t('safety.title') }} />
       <Stack.Screen name="settings" options={{ title: t('settings.title') }} />
+      <Stack.Screen name="sos" options={{ title: t('sos.title') }} />
+      <Stack.Screen name="sos-send" options={{ title: t('sos.sendTitle') }} />
     </Stack>
   );
 }

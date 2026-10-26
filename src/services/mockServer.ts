@@ -4,6 +4,7 @@
  * idempotent case registration, PII minimisation). Production auth is OIDC, not demo PINs.
  */
 import { can, canSetStatus } from '../domain/permissions';
+import { isValidSosAlert, type ServerSosAlert, type SosAlert } from '../domain/sos';
 import type {
   AgentSession,
   CitizenReport,
@@ -204,6 +205,46 @@ export class MockNisServer implements NisApi {
     await this.call();
     this.assert(session, true);
     return (await this.reports()).map(({ safeContact: _c, details: _d, ...rest }) => rest);
+  }
+
+  private sosAlerts() { return this.deps.store.get<ServerSosAlert[]>('sos', []); }
+
+  /** Alerts without a known region reach every responder: in an emergency, over-routing is safer. */
+  private sosInScope(session: AgentSession, a: ServerSosAlert): boolean {
+    return session.role === 'helpline' || !a.location.region || a.location.region === session.region;
+  }
+
+  async submitSosAlert(alert: SosAlert): Promise<{ receivedAt: string }> {
+    await this.call();
+    if (!isValidSosAlert(alert)) throw new ApiError('invalid', 'malformed SOS alert');
+    const all = await this.sosAlerts();
+    const existing = all.find((a) => a.alertId === alert.alertId);
+    if (existing) return { receivedAt: existing.receivedAt };
+    const rec: ServerSosAlert = { ...alert, receivedAt: this.now().toISOString(), status: 'NEW' };
+    all.unshift(rec);
+    await this.deps.store.set('sos', all);
+    return { receivedAt: rec.receivedAt };
+  }
+
+  async listSosAlerts(session: AgentSession): Promise<ServerSosAlert[]> {
+    await this.call();
+    this.assert(session, can(session.role, 'sos.respond'));
+    return (await this.sosAlerts()).filter((a) => this.sosInScope(session, a));
+  }
+
+  async acknowledgeSosAlert(session: AgentSession, alertId: string): Promise<ServerSosAlert> {
+    await this.call();
+    this.assert(session, can(session.role, 'sos.respond'));
+    const all = await this.sosAlerts();
+    const a = all.find((x) => x.alertId === alertId);
+    if (!a || !this.sosInScope(session, a)) throw new ApiError('not_found');
+    if (a.status === 'NEW') {
+      a.status = 'ACKNOWLEDGED';
+      a.handledBy = session.agentId;
+      a.acknowledgedAt = this.now().toISOString();
+      await this.deps.store.set('sos', all);
+    }
+    return a;
   }
 
   wipe(): Promise<void> {

@@ -2,7 +2,7 @@ import { Banner, Body, Button, H2, Screen } from '../../components/ui';
 import { callNumber } from '../../lib/device';
 import { useApp } from '../../state/AppContext';
 
-const TIPS = ['safety.tip1', 'safety.tip2', 'safety.tip3', 'safety.tip4', 'safety.tip5', 'safety.tip6'] as const;
+const TIPS = ['safety.tip7', 'safety.tip1', 'safety.tip2', 'safety.tip3', 'safety.tip4', 'safety.tip5', 'safety.tip6'] as const;
 
 export default function Safety() {
   const { t } = useApp();

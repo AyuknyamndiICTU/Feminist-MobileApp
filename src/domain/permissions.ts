@@ -5,17 +5,18 @@ export type Permission =
   | 'case.create'
   | 'case.captureIdentity'
   | 'report.verify'
+  | 'sos.respond'
   | 'procedure.services'
   | 'procedure.investigation'
   | 'procedure.judicial';
 
 const MATRIX: Record<Role, Permission[]> = {
-  police: ['case.create', 'case.captureIdentity', 'report.verify', 'procedure.services', 'procedure.investigation'],
-  gendarmerie: ['case.create', 'case.captureIdentity', 'report.verify', 'procedure.services', 'procedure.investigation'],
+  police: ['case.create', 'case.captureIdentity', 'report.verify', 'sos.respond', 'procedure.services', 'procedure.investigation'],
+  gendarmerie: ['case.create', 'case.captureIdentity', 'report.verify', 'sos.respond', 'procedure.services', 'procedure.investigation'],
   justice: ['case.create', 'case.captureIdentity', 'procedure.judicial'],
-  minproff: ['case.create', 'case.captureIdentity', 'report.verify', 'procedure.services'],
+  minproff: ['case.create', 'case.captureIdentity', 'report.verify', 'sos.respond', 'procedure.services'],
   health: ['case.create', 'procedure.services'],
-  helpline: ['case.create', 'report.verify', 'procedure.services'],
+  helpline: ['case.create', 'report.verify', 'sos.respond', 'procedure.services'],
 };
 
 const STATUS_PERMISSION: Record<ProcedureStatus, Permission | null> = {

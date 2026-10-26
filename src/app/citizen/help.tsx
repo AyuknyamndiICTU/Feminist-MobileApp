@@ -10,6 +10,7 @@ export default function Help() {
   const { t, lang } = useApp();
   return (
     <Screen>
+      <Button variant="danger" title={t('help.sos')} onPress={() => router.push('/citizen/sos-send')} testID="help-sos" />
       <H2>{t('help.hotlines')}</H2>
       {CONFIG.hotlines.map((h) => (
         <Card key={h.id}>

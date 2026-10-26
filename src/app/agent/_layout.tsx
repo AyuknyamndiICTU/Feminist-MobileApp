@@ -25,6 +25,7 @@ export default function AgentLayout() {
         <Stack.Screen name="verify" options={{ title: t('verify.title') }} />
         <Stack.Screen name="lookup" options={{ title: t('lookup.title') }} />
         <Stack.Screen name="indicators" options={{ title: t('ind.title') }} />
+        <Stack.Screen name="sos" options={{ title: t('agent.sos') }} />
       </Stack.Protected>
       <Stack.Protected guard={!session}>
         <Stack.Screen name="login" options={{ title: t('agent.loginTitle') }} />

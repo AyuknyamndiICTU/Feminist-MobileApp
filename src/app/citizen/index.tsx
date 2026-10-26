@@ -24,10 +24,12 @@ export default function CitizenHub() {
 
       <View style={{ backgroundColor: '#FCE4E2', borderRadius: 12, padding: 16, marginVertical: 12 }}>
         <H2>{t('hub.dangerTitle')}</H2>
+        <Button variant="danger" title={t('hub.sos')} onPress={() => router.push('/citizen/sos-send')} testID="hub-sos" />
         <Button variant="danger" title={t('common.call', { number: '1166' })} onPress={() => callNumber('1166')} />
         <Button variant="secondary" title={t('hub.getHelp')} onPress={() => router.push('/citizen/help')} testID="hub-help" />
       </View>
 
+      <MenuCard title={t('hub.handsFree')} hint={t('hub.handsFreeHint')} href="/citizen/sos" testID="hub-sos-setup" />
       <MenuCard title={t('hub.report')} hint={t('hub.reportHint')} href="/citizen/report" testID="hub-report" />
       <MenuCard title={t('hub.myReports')} href="/citizen/my-reports" testID="hub-mine" />
       <MenuCard title={t('hub.safety')} href="/citizen/safety" />

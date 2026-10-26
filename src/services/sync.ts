@@ -4,7 +4,7 @@
  */
 import { toRegisterRecord } from '../domain/anonymize';
 import type { AgentSession } from '../domain/types';
-import { NetworkError, type NisApi } from './api';
+import { ApiError, NetworkError, type NisApi } from './api';
 import type { LocalRepository } from './repository';
 
 export interface SyncResult {
@@ -67,6 +67,24 @@ export class SyncEngine {
         result.pushed += 1;
       } catch (e) {
         if (e instanceof NetworkError) { result.offline = true; break; }
+        result.failed += 1;
+      }
+    }
+    return result;
+  }
+
+  /** SOS alerts recorded by the phone; each is deleted locally once the platform has it. */
+  async flushSosAlerts(): Promise<SyncResult> {
+    const result: SyncResult = { pushed: 0, failed: 0, offline: false };
+    for (const a of await this.repo.listSosOutbox()) {
+      try {
+        await this.api.submitSosAlert(a);
+        await this.repo.removeSosAlert(a.alertId);
+        result.pushed += 1;
+      } catch (e) {
+        if (e instanceof NetworkError) { result.offline = true; break; }
+        // A malformed alert can never be accepted; keeping it would block the queue forever.
+        if (e instanceof ApiError && e.code === 'invalid') await this.repo.removeSosAlert(a.alertId);
         result.failed += 1;
       }
     }

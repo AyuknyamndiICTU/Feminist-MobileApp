@@ -53,6 +53,7 @@ export default function AgentHome() {
       <Button variant="secondary" title={t('agent.sync')} onPress={syncNow} testID="agent-sync" />
       {msg ? <Banner kind={msg.kind}>{msg.text}</Banner> : null}
 
+      {can(session.role, 'sos.respond') ? <Menu title={t('agent.sos')} href="/agent/sos" testID="agent-sos" /> : null}
       {can(session.role, 'case.create') ? <Menu title={t('agent.newCase')} href="/agent/case" testID="agent-new-case" /> : null}
       <Menu title={t('agent.cases')} href="/agent/cases" testID="agent-cases" />
       {can(session.role, 'report.verify') ? <Menu title={t('agent.verify')} href="/agent/verify" testID="agent-verify" /> : null}

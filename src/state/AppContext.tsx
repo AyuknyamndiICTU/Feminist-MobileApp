@@ -12,6 +12,7 @@ import { MockNisServer } from '../services/mockServer';
 import { LocalRepository } from '../services/repository';
 import { clearSecretCode, hasSecretCode } from '../services/secretCode';
 import { connectivity, isOnline } from '../services/connectivity';
+import { applySosSettings, collectNativeAlerts, sosNative } from '../services/sos';
 import { deviceStore } from '../services/storage';
 import { SyncEngine } from '../services/sync';
 
@@ -85,6 +86,11 @@ export function AppProvider({ children }: { children: ReactNode }) {
       setSimOffline(settings.simulateOffline);
       setHasCode(code);
       setServices(s);
+      // The app is in the foreground here, so Android allows the microphone again after a reboot.
+      if (code && sosNative) {
+        const sos = await s.repo.getSosSettings();
+        if (sos.armed) await applySosSettings(sos, settings.lang).catch(() => undefined);
+      }
     })();
     return () => { cancelled = true; };
   }, []);
@@ -115,11 +121,26 @@ export function AppProvider({ children }: { children: ReactNode }) {
   useEffect(() => {
     if (!services || !online) return;
     (async () => {
+      await collectNativeAlerts(services.repo);
+      const a = await services.sync.flushSosAlerts();
       const r = await services.sync.flushCitizenReports();
       const c = session ? await services.sync.syncCases(session) : { pushed: 0 };
-      if (r.pushed + c.pushed > 0) setDataVersion((v) => v + 1);
+      if (a.pushed + r.pushed + c.pushed > 0) setDataVersion((v) => v + 1);
     })().catch(() => undefined);
   }, [services, online, session]);
+
+  // An SOS sent by the background service reaches the national platform as soon as the app can.
+  useEffect(() => {
+    if (!services || !sosNative) return;
+    const sub = sosNative.addListener('onSosEvent', (e) => {
+      if (e.type !== 'dispatched') return;
+      (async () => {
+        await collectNativeAlerts(services.repo);
+        if ((await services.sync.flushSosAlerts()).pushed > 0) setDataVersion((v) => v + 1);
+      })().catch(() => undefined);
+    });
+    return () => sub.remove();
+  }, [services]);
 
   const value = useMemo<AppCtx | null>(() => {
     if (!services) return null;
@@ -130,6 +151,9 @@ export function AppProvider({ children }: { children: ReactNode }) {
       async setLang(l) {
         setLangState(l);
         await services.repo.saveSettings({ ...(await services.repo.getSettings()), lang: l });
+        // The SOS text is written in the app language.
+        const sos = await services.repo.getSosSettings();
+        if (sos.armed) await applySosSettings(sos, l).catch(() => undefined);
       },
       online,
       simulateOffline,
@@ -148,6 +172,7 @@ export function AppProvider({ children }: { children: ReactNode }) {
         setUnlocked(true);
       },
       async wipeDevice() {
+        await sosNative?.clear().catch(() => undefined);
         await services.repo.wipe();
         await clearSecretCode();
         await destroyDeviceKey();

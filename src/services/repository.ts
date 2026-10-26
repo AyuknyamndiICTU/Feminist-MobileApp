@@ -1,3 +1,4 @@
+import { DEFAULT_SOS_SETTINGS, type SosAlert, type SosSettings } from '../domain/sos';
 import type { CaseRecord, CitizenReport, Lang } from '../domain/types';
 import type { EncryptedStore } from './encryptedStore';
 
@@ -50,6 +51,31 @@ export class LocalRepository {
 
   async saveSettings(settings: DeviceSettings): Promise<void> {
     await this.store.set('settings', settings);
+  }
+
+  /** Emergency contacts and the voiceprint are personal data: encrypted like everything else. */
+  async getSosSettings(): Promise<SosSettings> {
+    return { ...DEFAULT_SOS_SETTINGS, ...(await this.store.get<Partial<SosSettings>>('sos', {})) };
+  }
+
+  async saveSosSettings(settings: SosSettings): Promise<void> {
+    await this.store.set('sos', settings);
+  }
+
+  listSosOutbox(): Promise<SosAlert[]> {
+    return this.store.get<SosAlert[]>('sosOutbox', []);
+  }
+
+  async enqueueSosAlerts(alerts: SosAlert[]): Promise<void> {
+    if (alerts.length === 0) return;
+    const all = await this.listSosOutbox();
+    for (const a of alerts) if (!all.some((x) => x.alertId === a.alertId)) all.push(a);
+    await this.store.set('sosOutbox', all);
+  }
+
+  /** Data minimisation: an alert (with its GPS position) leaves the phone once delivered. */
+  async removeSosAlert(alertId: string): Promise<void> {
+    await this.store.set('sosOutbox', (await this.listSosOutbox()).filter((a) => a.alertId !== alertId));
   }
 
   wipe(): Promise<void> {
