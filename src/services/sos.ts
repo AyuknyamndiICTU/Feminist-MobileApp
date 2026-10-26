@@ -16,6 +16,7 @@ import {
   normalizePhone,
   safeCallbackNumber,
   sosSmsTemplate,
+  VOICE_GRAMMAR,
   type NativeSosConfig,
   type SosAlert,
   type SosSettings,
@@ -134,7 +135,7 @@ export async function downloadVoiceModels(lang: Lang): Promise<void> {
 export function recordVoiceSample(lang: Lang): Promise<VoiceSample> {
   if (!sosNative) return Promise.reject(new Error('unsupported'));
   const { model, speaker } = voiceModels(lang);
-  return sosNative.recordVoiceSample(model.name, speaker.name, CONFIG.sos.voice.sampleTimeoutMs);
+  return sosNative.recordVoiceSample(model.name, speaker.name, CONFIG.sos.voice.sampleTimeoutMs, JSON.stringify(VOICE_GRAMMAR[lang]));
 }
 
 function clock(d = new Date()): string {

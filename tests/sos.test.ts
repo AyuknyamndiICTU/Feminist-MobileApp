@@ -157,6 +157,8 @@ describe('native service configuration', () => {
     const cfg = buildNativeSosConfig(settings({ voiceTrigger: true, voiceprint }), 'en', OPTIONS);
     expect(cfg.triggers.voice).toBe(true);
     expect(cfg.voice?.phrases).toEqual(VOICE_PHRASES.fr);
+    expect(cfg.voice?.grammar).toContain(VOICE_PHRASES.fr[0]);
+    expect(cfg.voice?.grammar).toContain('[unk]');
     expect(cfg.voice?.voiceprint).toEqual([0.6, 0.8]);
     expect(buildNativeSosConfig(settings({ voiceTrigger: true }), 'en', OPTIONS).triggers.voice).toBe(false);
   });
