@@ -1,6 +1,6 @@
 import { NativeModule, requireOptionalNativeModule } from 'expo';
 
-import type { SosTriggerEvents, VoiceSample } from './SosTrigger.types';
+import type { SosTriggerEvents, TestStatus, VoiceSample } from './SosTrigger.types';
 
 declare class SosTriggerModule extends NativeModule<SosTriggerEvents> {
   /** Stores the `NativeSosConfig` JSON (encrypted with a Keystore key) and reloads the service if armed. */
@@ -14,6 +14,8 @@ declare class SosTriggerModule extends NativeModule<SosTriggerEvents> {
   cancel(): Promise<boolean>;
   isActive(): Promise<boolean>;
   setTestMode(enabled: boolean): Promise<void>;
+  /** Test-mode state and detections, kept natively so they survive the app locking. */
+  getTestStatus(): TestStatus;
   isModelReady(name: string): boolean;
   downloadModel(name: string, url: string, sha256: string | null): Promise<void>;
   recordVoiceSample(model: string, speakerModel: string, timeoutMs: number): Promise<VoiceSample>;

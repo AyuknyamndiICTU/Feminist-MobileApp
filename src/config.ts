@@ -39,7 +39,7 @@ export const CONFIG = {
       enrollmentSamples: 3,
       /** Speech frames (10 ms each) needed before a speaker vector is trusted. */
       minFrames: 50,
-      sampleTimeoutMs: 8000,
+      sampleTimeoutMs: 10000,
     },
     /** Offline Vosk models (Apache-2.0), downloaded once when the voice trigger is turned on. */
     voiceModels: {
