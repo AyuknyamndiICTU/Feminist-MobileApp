@@ -8,6 +8,7 @@ import { Banner, Body, Button, Card, colors, Field, H2, Screen, Toggle } from '.
 import { CONFIG } from '../../config';
 import {
   fillSosTemplate,
+  NON_BLOCKING_SOS_ERRORS,
   safeCallbackNumber,
   sosSmsTemplate,
   validateSosSettings,
@@ -36,6 +37,9 @@ const ERR: Record<SosSettingsError, TKey> = {
   tooManyContacts: 'sos.err.max',
 };
 const PREVIEW_GEO = { lat: 3.86667, lng: 11.51667, accuracy: 15 };
+
+const blockingErrors = (s: SosSettings, max: number) =>
+  validateSosSettings(s, max).filter((e) => !NON_BLOCKING_SOS_ERRORS.includes(e));
 
 type Msg = { kind: 'success' | 'warn' | 'danger' | 'info'; text: string };
 
@@ -90,11 +94,12 @@ export default function SosSetup() {
 
   /**
    * Every change is saved at once; an armed service is reconfigured, or disarmed if it can no longer
-   * work. A bad optional call-back number only shows a field error (it is left out of alerts).
+   * work. A missing voiceprint or a bad optional call-back number does not disarm: the voice trigger
+   * waits for enrolment and the number is left out of alerts.
    */
   const persist = useCallback(async (next: SosSettings) => {
     let saved = next;
-    if (next.armed && validateSosSettings(next, max).some((e) => e !== 'callbackNumber')) {
+    if (next.armed && blockingErrors(next, max).length > 0) {
       saved = { ...next, armed: false };
       setMsg({ kind: 'warn', text: t('sos.disarmedInvalid') });
     }
@@ -124,7 +129,7 @@ export default function SosSetup() {
 
   const turnOn = async () => {
     const cur = current.current ?? s;
-    const errs = validateSosSettings(cur, max);
+    const errs = blockingErrors(cur, max);
     if (errs.length > 0) return setMsg({ kind: 'danger', text: errs.map((e) => t(ERR[e], { max })).join(' ') });
     const granted = await requestPermissions(requiredPermissions(cur));
     await refresh(cur);

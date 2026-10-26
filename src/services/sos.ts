@@ -22,6 +22,7 @@ import {
 } from '../domain/sos';
 import type { Lang } from '../domain/types';
 import { callNumber } from '../lib/device';
+import { withoutAutoLock } from '../lib/autoLock';
 import type { LocalRepository } from './repository';
 
 export const sosNative = Platform.OS === 'android' ? SosTrigger : null;
@@ -59,7 +60,7 @@ export async function checkPermissions(list: SosPermission[]): Promise<Permissio
 
 export async function requestPermissions(list: SosPermission[]): Promise<PermissionState> {
   if (Platform.OS !== 'android') return {};
-  const res = await PermissionsAndroid.requestMultiple(list.flatMap((p) => ANDROID[p]));
+  const res = await withoutAutoLock(() => PermissionsAndroid.requestMultiple(list.flatMap((p) => ANDROID[p])));
   const out: PermissionState = {};
   for (const p of list) out[p] = ANDROID[p].some((perm) => res[perm] === PermissionsAndroid.RESULTS.GRANTED);
   return out;

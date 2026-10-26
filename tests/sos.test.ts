@@ -70,6 +70,7 @@ describe('emergency contacts', () => {
     expect(validateSosSettings(settings({ contacts: [] }), 5)).toEqual(['contacts']);
     expect(validateSosSettings(settings({ volumeTrigger: false }), 5)).toEqual(['trigger']);
     expect(validateSosSettings(settings({ voiceTrigger: true }), 5)).toEqual(['voiceprint']);
+    expect(validateSosSettings(settings({ volumeTrigger: false, voiceTrigger: true }), 5)).toEqual(['trigger', 'voiceprint']);
     expect(validateSosSettings(settings({ callbackNumber: 'abc' }), 5)).toEqual(['callbackNumber']);
     expect(validateSosSettings(settings(), 1)).toEqual(['tooManyContacts']);
   });

@@ -6,6 +6,7 @@ import { AppState } from 'react-native';
 import { CONFIG } from '../config';
 import type { AgentSession, Lang } from '../domain/types';
 import { makeT, type Translator } from '../i18n';
+import { autoLockPaused } from '../lib/autoLock';
 import { createDeviceCipher, destroyDeviceKey } from '../services/crypto';
 import { EncryptedStore } from '../services/encryptedStore';
 import { MockNisServer } from '../services/mockServer';
@@ -108,7 +109,7 @@ export function AppProvider({ children }: { children: ReactNode }) {
     const sub = AppState.addEventListener('change', (state) => {
       if (state === 'background') {
         backgroundAt.current = Date.now();
-        if (!sessionRef.current) lock();
+        if (!sessionRef.current && !autoLockPaused()) lock();
       } else if (state === 'active' && backgroundAt.current !== null) {
         const away = Date.now() - backgroundAt.current;
         backgroundAt.current = null;

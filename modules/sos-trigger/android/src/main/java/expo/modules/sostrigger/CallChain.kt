@@ -4,15 +4,11 @@ import android.Manifest
 import android.annotation.SuppressLint
 import android.content.Context
 import android.net.Uri
-import android.os.Build
 import android.os.Bundle
 import android.os.Handler
 import android.os.Looper
 import android.telecom.TelecomManager
-import android.telephony.PhoneStateListener
-import android.telephony.TelephonyCallback
 import android.telephony.TelephonyManager
-import androidx.core.content.ContextCompat
 
 /**
  * Calls each number in turn (emergency contacts, then the 1166 hotline). The next call starts when
@@ -22,23 +18,22 @@ import androidx.core.content.ContextCompat
  */
 class CallChain(private val ctx: Context, private val numbers: List<String>, private val onDone: () -> Unit) {
   private val main = Handler(Looper.getMainLooper())
-  private val telephony = ctx.getSystemService(TelephonyManager::class.java)
+  private val watcher = CallStateWatcher(ctx, ::onState)
   private var index = 0
   private var offhook = false
   private var stopped = false
   private var listening = false
-  private var callback: Any? = null
   private val watchdog = Runnable { next() }
 
   fun start() {
-    listening = listen()
+    listening = watcher.start()
     next()
   }
 
   fun cancel() {
     if (stopped) return
     stopped = true
-    unlisten()
+    watcher.stop()
     main.removeCallbacksAndMessages(null)
   }
 
@@ -83,46 +78,6 @@ class CallChain(private val ctx: Context, private val numbers: List<String>, pri
       true
     } catch (e: Exception) {
       false
-    }
-  }
-
-  private fun listen(): Boolean {
-    val tm = telephony ?: return false
-    return try {
-      if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.S) {
-        if (!ctx.granted(Manifest.permission.READ_PHONE_STATE)) return false
-        val cb = object : TelephonyCallback(), TelephonyCallback.CallStateListener {
-          override fun onCallStateChanged(state: Int) = onState(state)
-        }
-        tm.registerTelephonyCallback(ContextCompat.getMainExecutor(ctx), cb)
-        callback = cb
-      } else {
-        @Suppress("DEPRECATION")
-        val l = object : PhoneStateListener() {
-          @Deprecated("Deprecated in Java")
-          override fun onCallStateChanged(state: Int, phoneNumber: String?) = onState(state)
-        }
-        @Suppress("DEPRECATION")
-        tm.listen(l, PhoneStateListener.LISTEN_CALL_STATE)
-        callback = l
-      }
-      true
-    } catch (e: Exception) {
-      false
-    }
-  }
-
-  private fun unlisten() {
-    val tm = telephony ?: return
-    val cb = callback ?: return
-    callback = null
-    runCatching {
-      if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.S && cb is TelephonyCallback) {
-        tm.unregisterTelephonyCallback(cb)
-      } else if (cb is PhoneStateListener) {
-        @Suppress("DEPRECATION")
-        tm.listen(cb, PhoneStateListener.LISTEN_NONE)
-      }
     }
   }
 

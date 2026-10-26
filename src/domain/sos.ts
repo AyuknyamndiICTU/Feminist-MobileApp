@@ -137,11 +137,14 @@ export function validateContact(c: Pick<EmergencyContact, 'name' | 'phone'>, oth
 
 export type SosSettingsError = 'contacts' | 'trigger' | 'voiceprint' | 'callbackNumber' | 'tooManyContacts';
 
+/** Problems that do not stop the SOS from working (the voice trigger waits for enrolment). */
+export const NON_BLOCKING_SOS_ERRORS: readonly SosSettingsError[] = ['voiceprint', 'callbackNumber'];
+
 export function validateSosSettings(s: SosSettings, maxContacts: number): SosSettingsError[] {
   const errors: SosSettingsError[] = [];
   if (s.contacts.length === 0) errors.push('contacts');
   if (s.contacts.length > maxContacts) errors.push('tooManyContacts');
-  if (!s.volumeTrigger && !s.voiceTrigger) errors.push('trigger');
+  if (!s.volumeTrigger && !(s.voiceTrigger && s.voiceprint)) errors.push('trigger');
   if (s.voiceTrigger && !s.voiceprint) errors.push('voiceprint');
   if (s.callbackNumber && !isPlausiblePhone(normalizePhone(s.callbackNumber))) errors.push('callbackNumber');
   return errors;
