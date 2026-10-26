@@ -145,7 +145,7 @@ class SosService : Service() {
             if (gen == voiceGen) stopVoice()
             SosBus.emit("error", mapOf("detail" to err))
           }
-        }).also { it.start() }
+        }, grammar = v.grammarJson()).also { it.start() }
       }
     }, "calc-load").start()
   }

@@ -12,7 +12,11 @@ data class VoiceConfig(
   val voiceprint: FloatArray,
   val threshold: Double,
   val minFrames: Int,
-)
+  val grammar: List<String> = emptyList(),
+) {
+  /** JSON grammar for the recogniser, or null for the full vocabulary. */
+  fun grammarJson(): String? = if (grammar.isEmpty()) null else JSONArray(grammar).toString()
+}
 
 /** Parsed form of `NativeSosConfig` (src/domain/sos.ts). Everything the service needs without JavaScript. */
 data class SosConfig(
@@ -57,6 +61,7 @@ data class SosConfig(
           model = v.getString("model"),
           speakerModel = v.getString("speakerModel"),
           phrases = v.getJSONArray("phrases").strings(),
+          grammar = v.optJSONArray("grammar")?.strings() ?: emptyList(),
           voiceprint = FloatArray(print.length()) { print.getDouble(it).toFloat() },
           threshold = v.getDouble("threshold"),
           minFrames = v.getInt("minFrames"),
