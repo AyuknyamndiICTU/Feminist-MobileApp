@@ -155,7 +155,7 @@ class SosService : Service() {
     val v = config?.voice ?: return
     val d = VoiceMatch.decide(u.text, u.vector, u.frames, v)
     if (SosDispatcher.isTestMode() && d.phrase) {
-      SosBus.emit("voice", mapOf("score" to d.score, "accepted" to d.accepted))
+      SosDispatcher.recordTest("voice", mapOf("score" to d.score, "accepted" to d.accepted))
     }
     if (d.accepted) main.post { if (running) SosDispatcher.trigger(this, "voice") }
   }

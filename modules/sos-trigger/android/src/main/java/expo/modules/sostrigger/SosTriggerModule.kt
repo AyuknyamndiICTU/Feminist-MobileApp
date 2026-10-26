@@ -74,6 +74,10 @@ class SosTriggerModule : Module() {
       SosDispatcher.setTestMode(context, enabled)
     }.runOnQueue(Queues.MAIN)
 
+    Function("getTestStatus") {
+      SosDispatcher.testStatus()
+    }
+
     Function("isModelReady") { name: String ->
       ModelManager.isReady(context, name)
     }

@@ -48,10 +48,20 @@ class VoiceListener(
   private val engine: VoiceEngine,
   private val onUtterance: (Utterance) -> Unit,
   private val onError: (String) -> Unit,
+  /** Enrolment: when stopped mid-sentence, hand over what was heard instead of dropping it. */
+  private val flushOnStop: Boolean = false,
 ) {
   @Volatile
   private var running = false
   private var thread: Thread? = null
+
+  /** Loudest chunk and number of speech chunks seen, for diagnosing quiet microphones. */
+  @Volatile
+  var peakRms = 0.0
+    private set
+  @Volatile
+  var speechChunks = 0
+    private set
 
   fun start() {
     if (running) return
@@ -110,6 +120,8 @@ class VoiceListener(
         }
         val frame = chunk.copyOf(n)
         val speech = gate.update(frame, n)
+        if (gate.lastRms > peakRms) peakRms = gate.lastRms
+        if (speech) speechChunks++
         if (!active) {
           preRoll.addLast(frame)
           if (preRoll.size > PRE_ROLL_CHUNKS) preRoll.removeFirst()
@@ -128,6 +140,7 @@ class VoiceListener(
           }
         }
       }
+      if (active && flushOnStop) VoiceEngine.parse(rec.finalResult)?.let(onUtterance)
     } catch (e: Exception) {
       onError("audio")
     } finally {
