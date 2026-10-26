@@ -131,7 +131,7 @@ class SosConfigTest {
      "sms":{"recipients":["699112233","677001122"],"text":"SOS from Amina: I am in danger and need help now. {location} Time: {time}. (automatic alert)","gatewayPrefix":"S1 CE MFO YDE3"},
      "calls":["699112233","677001122","1166"],
      "location":{"enabled":true,"timeoutMs":10000,"known":"Location: https://maps.google.com/?q={lat},{lng} (+/-{acc} m).","unknown":"Location unavailable."},
-     "voice":{"model":"vosk-model-small-en-us-0.15","speakerModel":"vosk-model-spk-0.4","phrases":["please help me"],"voiceprint":[0.6,0.8],"threshold":0.5,"minFrames":50},
+     "voice":{"model":"vosk-model-small-en-us-0.15","speakerModel":"vosk-model-spk-0.4","phrases":["please help me"],"grammar":["please help me","please tell me","[unk]"],"voiceprint":[0.6,0.8],"threshold":0.5,"minFrames":50},
      "alert":{"location":{"region":"CE","department":"MFO","arrondissement":"YDE3"},"callbackNumber":"699000000"},
      "notification":{"title":"Calculator","text":""}}
   """.trimIndent()
@@ -144,6 +144,7 @@ class SosConfigTest {
     assertEquals(null, cfg.apiUrl)
     assertEquals("699000000", cfg.callbackNumber)
     assertEquals(2, cfg.voice!!.voiceprint.size)
+    assertEquals("""["please help me","please tell me","[unk]"]""", cfg.voice!!.grammarJson())
     assertEquals("CE", cfg.alertLocation.getString("region"))
   }
 

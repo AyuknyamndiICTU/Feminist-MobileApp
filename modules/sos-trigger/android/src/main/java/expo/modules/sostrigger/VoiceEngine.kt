@@ -18,8 +18,14 @@ class VoiceEngine(modelDir: File, speakerDir: File) : AutoCloseable {
   private val model = Model(modelDir.absolutePath)
   private val speaker = SpeakerModel(speakerDir.absolutePath)
 
-  /** Full-vocabulary recogniser: a tiny grammar would force look-alike sentences onto the phrase. */
-  fun recognizer(): Recognizer = Recognizer(model, SAMPLE_RATE.toFloat(), speaker)
+  /**
+   * Recogniser limited to [grammar] (JSON array of phrases, "[unk]" for anything else), with the
+   * speaker model attached so each utterance also yields an x-vector.
+   */
+  fun recognizer(grammar: String?): Recognizer {
+    if (grammar.isNullOrBlank()) return Recognizer(model, SAMPLE_RATE.toFloat(), speaker)
+    return Recognizer(model, SAMPLE_RATE.toFloat(), grammar).also { it.setSpeakerModel(speaker) }
+  }
 
   override fun close() {
     runCatching { speaker.close() }
@@ -50,6 +56,7 @@ class VoiceListener(
   private val onError: (String) -> Unit,
   /** Enrolment: when stopped mid-sentence, hand over what was heard instead of dropping it. */
   private val flushOnStop: Boolean = false,
+  private val grammar: String? = null,
 ) {
   @Volatile
   private var running = false
@@ -99,7 +106,7 @@ class VoiceListener(
       running = false
       return onError("mic")
     }
-    val rec = engine.recognizer()
+    val rec = engine.recognizer(grammar)
     val gate = EnergyGate()
     val preRoll = ArrayDeque<ShortArray>()
     val chunk = ShortArray(chunkSize)
