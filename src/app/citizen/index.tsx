@@ -1,8 +1,10 @@
 import { router } from 'expo-router';
+import { useEffect, useState } from 'react';
 import { Text, View } from 'react-native';
 
 import { Banner, Body, Button, Card, colors, H2, Screen, Title } from '../../components/ui';
 import { callNumber } from '../../lib/device';
+import { sosNative } from '../../services/sos';
 import { useApp } from '../../state/AppContext';
 
 function MenuCard({ title, hint, href, testID }: { title: string; hint?: string; href: string; testID?: string }) {
@@ -14,6 +16,37 @@ function MenuCard({ title, hint, href, testID }: { title: string; hint?: string;
   );
 }
 
+/** While a hands-free SOS is running, lets the user stop the remaining calls once she is safe. */
+function SosInProgress({ t }: { t: ReturnType<typeof useApp>['t'] }) {
+  const [active, setActive] = useState(false);
+  const [stopped, setStopped] = useState(false);
+
+  useEffect(() => {
+    if (!sosNative) return;
+    let alive = true;
+    sosNative.isActive().then((a) => { if (alive) setActive(a); }).catch(() => undefined);
+    const sub = sosNative.addListener('onSosEvent', (e) => {
+      if (e.type === 'triggered' || e.type === 'dispatched') { setActive(true); setStopped(false); }
+      if (e.type === 'finished' || e.type === 'cancelled') setActive(false);
+    });
+    return () => { alive = false; sub.remove(); };
+  }, []);
+
+  if (stopped) return <Banner kind="success">{t('hub.sosStopped')}</Banner>;
+  if (!active) return null;
+  return (
+    <>
+      <Banner kind="danger">{t('hub.sosActive')}</Banner>
+      <Button
+        variant="secondary"
+        title={t('hub.sosStop')}
+        onPress={() => sosNative?.cancel().then(() => { setActive(false); setStopped(true); }).catch(() => undefined)}
+        testID="hub-sos-stop"
+      />
+    </>
+  );
+}
+
 export default function CitizenHub() {
   const { t, online } = useApp();
   return (
@@ -21,6 +54,7 @@ export default function CitizenHub() {
       <Title>{t('hub.title')}</Title>
       <Body muted>{t('hub.subtitle')}</Body>
       {!online ? <Banner kind="warn">{t('common.offline')}</Banner> : null}
+      <SosInProgress t={t} />
 
       <View style={{ backgroundColor: '#FCE4E2', borderRadius: 12, padding: 16, marginVertical: 12 }}>
         <H2>{t('hub.dangerTitle')}</H2>
