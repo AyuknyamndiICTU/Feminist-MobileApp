@@ -23,13 +23,18 @@ object VoiceMatch {
       .filter { it.isNotEmpty() }
   }
 
-  /** The whole utterance must be a phrase, possibly repeated: "please help me carry this" does not match. */
+  /**
+   * Only the phrase's words, all of them, in any order and possibly repeated; any other word
+   * rejects it and at most one "[unk]" is tolerated. Mirrors `matchesPhrase` in src/domain/sos.ts.
+   */
   fun matchesPhrase(text: String, phrases: List<String>): Boolean {
+    val unknown = Regex("\\[unk]").findAll(text.lowercase(Locale.ROOT)).count()
     val heard = words(text)
-    if (heard.isEmpty()) return false
+    if (unknown > 1 || heard.isEmpty()) return false
     return phrases.any { phrase ->
       val target = words(phrase)
-      target.isNotEmpty() && heard.size % target.size == 0 && heard.indices.all { heard[it] == target[it % target.size] }
+      target.isNotEmpty() && heard.size <= target.size * 2 &&
+        heard.all { it in target } && target.all { it in heard }
     }
   }
 

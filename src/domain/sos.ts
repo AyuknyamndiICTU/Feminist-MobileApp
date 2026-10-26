@@ -326,16 +326,20 @@ export function normalizeUtterance(text: string): string {
 }
 
 /**
- * True when the whole utterance is one of the phrases, possibly repeated ("please help me please
- * help me"). Everyday sentences that merely contain the words ("please help me carry this") do not
- * match, which keeps false alarms from the user's own voice low.
+ * True when the utterance is made only of the phrase's words, contains all of them, in any order
+ * and possibly repeated: real recognisers reorder or double words under stress or with an accent
+ * ("help help me please"). Any other word ("please tell me", "please help me with the dishes")
+ * rejects it, and at most one unknown word ("[unk]", e.g. a breath) is tolerated.
  */
 export function matchesPhrase(text: string, phrases: string[]): boolean {
+  const unknown = (text.toLowerCase().match(/\[unk\]/g) ?? []).length;
   const words = normalizeUtterance(text).split(' ').filter(Boolean);
+  if (unknown > 1 || words.length === 0) return false;
   return phrases.some((p) => {
     const target = normalizeUtterance(p).split(' ').filter(Boolean);
-    if (target.length === 0 || words.length === 0 || words.length % target.length !== 0) return false;
-    return words.every((w, i) => w === target[i % target.length]);
+    if (target.length === 0 || words.length > target.length * 2) return false;
+    const allowed = new Set(target);
+    return words.every((w) => allowed.has(w)) && target.every((w) => words.includes(w));
   });
 }
 
