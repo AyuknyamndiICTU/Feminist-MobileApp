@@ -48,7 +48,7 @@ export const DEFAULT_SOS_SETTINGS: SosSettings = {
   contacts: [],
 };
 
-export type SosSource = 'volume' | 'voice' | 'button';
+export type SosSource = 'volume' | 'voice' | 'button' | 'checkin';
 
 export interface GeoFix {
   lat: number;
@@ -76,7 +76,7 @@ export interface ServerSosAlert extends SosAlert {
   acknowledgedAt?: string;
 }
 
-const SOURCES: SosSource[] = ['volume', 'voice', 'button'];
+const SOURCES: SosSource[] = ['volume', 'voice', 'button', 'checkin'];
 const isCode = (v: unknown) => v === undefined || (typeof v === 'string' && /^[A-Z0-9]{1,8}$/.test(v));
 
 /** System-boundary check for alerts arriving from the native outbox or the network. */
