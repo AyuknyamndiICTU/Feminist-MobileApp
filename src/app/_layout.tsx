@@ -2,6 +2,7 @@ import { Stack } from 'expo-router';
 import { StatusBar } from 'expo-status-bar';
 
 import { AppProvider, useApp } from '../state/AppContext';
+import { SubscriptionProvider } from '../state/SubscriptionContext';
 
 /**
  * Access is declarative: when `unlocked` turns false (Exit button, app backgrounded) the router
@@ -28,8 +29,10 @@ function RootNavigator() {
 export default function RootLayout() {
   return (
     <AppProvider>
-      <StatusBar style="dark" />
-      <RootNavigator />
+      <SubscriptionProvider>
+        <StatusBar style="dark" />
+        <RootNavigator />
+      </SubscriptionProvider>
     </AppProvider>
   );
 }

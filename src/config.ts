@@ -48,4 +48,22 @@ export const CONFIG = {
       speaker: { name: 'vosk-model-spk-0.4', url: 'https://alphacephei.com/vosk/models/vosk-model-spk-0.4.zip', sha256: 'a74d8f51144484813e16af689bb0f916b7a111e2347f467c4933c1166097b5a7', sizeMb: 14 },
     },
   },
+  /**
+   * SafeHer Premium. Emergency features never depend on this: only the premium extras are gated.
+   * apiUrl must be HTTPS in production; plain http is only accepted for localhost (development,
+   * reached from a USB-connected phone with `adb reverse tcp:3000 tcp:3000`).
+   */
+  subscription: {
+    apiUrl: 'http://localhost:3000',
+    /** Ed25519 public key matching the server's ENTITLEMENT_PRIVATE_KEY (development key pair). */
+    entitlementPublicKey: '4912267e85b68a5156c40ebf61ccd334931e45ce4f85748f3dbaa6a7f070faa5',
+    /** Reminders before the end of a plan, in days. */
+    remindDaysBefore: [3, 1],
+    /** How far the phone clock may go back before the saved plan is no longer trusted offline. */
+    clockRollbackToleranceMs: 60 * 60 * 1000,
+    requestTimeoutMs: 15000,
+    pollIntervalMs: 3000,
+    /** SafeHer Plus: counselling or legal call-back requests per calendar month. */
+    counsellingPerMonth: 2,
+  },
 } as const;
