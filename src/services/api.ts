@@ -2,6 +2,7 @@
  * Contract between the mobile app and the national platform (Layer 2 interoperability bus).
  * The prototype ships an in-device mock; production points this at the BUCREP-hosted API gateway.
  */
+import type { CallbackRequest, ServerCallbackRequest } from '../domain/callback';
 import type { ServerSosAlert, SosAlert } from '../domain/sos';
 import type {
   AgentSession,
@@ -58,4 +59,8 @@ export interface NisApi {
   submitSosAlert(alert: SosAlert): Promise<{ receivedAt: string }>;
   listSosAlerts(session: AgentSession): Promise<ServerSosAlert[]>;
   acknowledgeSosAlert(session: AgentSession, alertId: string): Promise<ServerSosAlert>;
+  /** SafeHer Plus: the signed entitlement proves the member's plan (checked on the server). */
+  submitCallbackRequest(request: CallbackRequest, entitlement: string): Promise<{ receivedAt: string }>;
+  listCallbackRequests(session: AgentSession): Promise<ServerCallbackRequest[]>;
+  completeCallbackRequest(session: AgentSession, requestId: string): Promise<ServerCallbackRequest>;
 }

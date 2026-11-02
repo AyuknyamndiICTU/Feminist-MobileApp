@@ -3,8 +3,10 @@
  * It enforces the same rules the real API gateway must enforce (role checks, regional scoping,
  * idempotent case registration, PII minimisation). Production auth is OIDC, not demo PINs.
  */
+import { isValidCallbackRequest, type CallbackRequest, type ServerCallbackRequest } from '../domain/callback';
 import { can, canSetStatus } from '../domain/permissions';
 import { isValidSosAlert, type ServerSosAlert, type SosAlert } from '../domain/sos';
+import type { EntitlementClaims } from '../domain/subscription';
 import type {
   AgentSession,
   CitizenReport,
@@ -33,6 +35,11 @@ export interface MockServerDeps {
   randomBytes: (n: number) => Uint8Array;
   now?: () => Date;
   latencyMs?: number;
+  /**
+   * Verifies a SafeHer entitlement signature (Ed25519) and returns its claims. Without it, Plus-only
+   * services are refused: the platform never trusts the app's own idea of the member's plan.
+   */
+  verifyEntitlement?: (token: string) => EntitlementClaims | null;
 }
 
 function mergeHistory(a: ProcedureEvent[], b: ProcedureEvent[]): ProcedureEvent[] {
@@ -245,6 +252,51 @@ export class MockNisServer implements NisApi {
       await this.deps.store.set('sos', all);
     }
     return a;
+  }
+
+  private callbacks() { return this.deps.store.get<ServerCallbackRequest[]>('callbacks', []); }
+
+  private callbackInScope(session: AgentSession, r: ServerCallbackRequest): boolean {
+    return session.role === 'helpline' || !r.region || r.region === session.region;
+  }
+
+  async submitCallbackRequest(request: CallbackRequest, entitlement: string): Promise<{ receivedAt: string }> {
+    await this.call();
+    if (!isValidCallbackRequest(request)) throw new ApiError('invalid', 'malformed call-back request');
+    const claims = this.deps.verifyEntitlement?.(entitlement) ?? null;
+    if (!claims || claims.xu * 1000 <= this.now().getTime()) throw new ApiError('forbidden', 'SafeHer Plus required');
+    const all = await this.callbacks();
+    const existing = all.find((r) => r.requestId === request.requestId);
+    if (existing) return { receivedAt: existing.receivedAt };
+    // Server-side monthly quota per member (the subscription's device id), not just the app's count.
+    const month = this.now().toISOString().slice(0, 7);
+    const used = all.filter((r) => r.member === claims.sub && r.receivedAt.startsWith(month)).length;
+    if (used >= 2) throw new ApiError('forbidden', 'monthly quota reached');
+    const rec: ServerCallbackRequest & { member: string } = { ...request, member: claims.sub, receivedAt: this.now().toISOString(), status: 'NEW' };
+    all.unshift(rec);
+    await this.deps.store.set('callbacks', all);
+    return { receivedAt: rec.receivedAt };
+  }
+
+  async listCallbackRequests(session: AgentSession): Promise<ServerCallbackRequest[]> {
+    await this.call();
+    this.assert(session, can(session.role, 'callback.respond'));
+    return (await this.callbacks())
+      .filter((r) => this.callbackInScope(session, r))
+      .map(({ member: _m, ...rest }) => rest);
+  }
+
+  async completeCallbackRequest(session: AgentSession, requestId: string): Promise<ServerCallbackRequest> {
+    await this.call();
+    this.assert(session, can(session.role, 'callback.respond'));
+    const all = await this.callbacks();
+    const r = all.find((x) => x.requestId === requestId);
+    if (!r || !this.callbackInScope(session, r)) throw new ApiError('not_found');
+    r.status = 'DONE';
+    r.handledBy = session.agentId;
+    await this.deps.store.set('callbacks', all);
+    const { member: _m, ...rest } = r;
+    return rest;
   }
 
   wipe(): Promise<void> {
