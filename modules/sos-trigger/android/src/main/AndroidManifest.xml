@@ -13,6 +13,8 @@
   <uses-permission android:name="android.permission.VIBRATE" />
   <uses-permission android:name="android.permission.WAKE_LOCK" />
   <uses-permission android:name="android.permission.INTERNET" />
+  <!-- Safe Walk deadline on time even in Doze (the user can grant it in "Alarms & reminders"). -->
+  <uses-permission android:name="android.permission.SCHEDULE_EXACT_ALARM" />
 
   <uses-feature android:name="android.hardware.telephony" android:required="false" />
   <uses-feature android:name="android.hardware.microphone" android:required="false" />
@@ -36,5 +38,9 @@
         <action android:name="android.intent.action.MY_PACKAGE_REPLACED" />
       </intent-filter>
     </receiver>
+
+    <receiver
+      android:name="expo.modules.sostrigger.CheckInReceiver"
+      android:exported="false" />
   </application>
 </manifest>
