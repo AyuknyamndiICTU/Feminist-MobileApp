@@ -113,6 +113,35 @@ class SosTriggerModule : Module() {
     AsyncFunction("takePendingAlerts") {
       ConfigStore.takeAlerts(context)
     }
+
+    /** Safe Walk: arms the deadline and optionally tells the contacts she is on her way. */
+    AsyncFunction("scheduleCheckIn") { atMs: Double, smsText: String? ->
+      val ctx = context
+      val exact = CheckIn.schedule(ctx, atMs.toLong())
+      var notified = 0
+      if (!smsText.isNullOrBlank()) {
+        val cfg = ConfigStore.loadConfig(ctx)
+        cfg?.smsRecipients?.forEach { if (Sms.send(ctx, it, smsText.take(300))) notified++ }
+      }
+      mapOf("exact" to exact, "notified" to notified)
+    }
+
+    AsyncFunction("cancelCheckIn") {
+      CheckIn.cancel(context)
+    }
+
+    Function("getCheckIn") {
+      CheckIn.scheduledAt(context).toDouble()
+    }
+
+    Function("canScheduleExactAlarms") {
+      CheckIn.canScheduleExact(context)
+    }
+
+    AsyncFunction("openExactAlarmSettings") {
+      CheckIn.exactAlarmSettingsIntent(context)?.let { runCatching { context.startActivity(it) } }
+      Unit
+    }
   }
 
   /** Records until the first utterance (or timeout) and returns its text and speaker vector. */

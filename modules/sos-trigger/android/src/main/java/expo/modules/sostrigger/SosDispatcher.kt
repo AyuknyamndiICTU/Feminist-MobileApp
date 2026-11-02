@@ -66,7 +66,7 @@ object SosDispatcher {
   /** In test mode a detected gesture or phrase only vibrates and reports back; nothing is sent. */
   fun trigger(ctx: Context, source: String, immediate: Boolean = false) {
     val app = ctx.applicationContext
-    if (isTestMode() && source != "button") {
+    if (isTestMode() && (source == "volume" || source == "voice")) {
       Haptics.play(app, Haptics.TEST)
       recordTest("test", mapOf("source" to source))
       return
