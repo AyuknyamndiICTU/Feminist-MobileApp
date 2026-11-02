@@ -14,6 +14,7 @@ import { LocalRepository } from '../services/repository';
 import { clearSecretCode, hasSecretCode } from '../services/secretCode';
 import { connectivity, isOnline } from '../services/connectivity';
 import { applySosSettings, collectNativeAlerts, sosNative } from '../services/sos';
+import { verifyEntitlement } from '../services/subscription';
 import { deviceStore } from '../services/storage';
 import { SyncEngine } from '../services/sync';
 
@@ -57,6 +58,7 @@ async function buildServices(): Promise<Services> {
     isOnline,
     randomBytes: (n) => Crypto.getRandomBytes(n),
     latencyMs: 250,
+    verifyEntitlement,
   });
   return { repo, api, sync: new SyncEngine(repo, api) };
 }

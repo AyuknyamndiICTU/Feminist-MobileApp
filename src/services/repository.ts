@@ -1,4 +1,5 @@
 import { DEFAULT_SOS_SETTINGS, type SosAlert, type SosSettings } from '../domain/sos';
+import type { PlanId, Provider } from '../domain/subscription';
 import type { CaseRecord, CitizenReport, Lang } from '../domain/types';
 import type { EncryptedStore } from './encryptedStore';
 
@@ -78,7 +79,80 @@ export class LocalRepository {
     await this.store.set('sosOutbox', (await this.listSosOutbox()).filter((a) => a.alertId !== alertId));
   }
 
+  /* ---------- SafeHer Premium ---------- */
+
+  async getSubscriptionCache(): Promise<SubscriptionCache> {
+    return { ...EMPTY_SUBSCRIPTION, ...(await this.store.get<Partial<SubscriptionCache>>('subscription', {})) };
+  }
+
+  async saveSubscriptionCache(cache: SubscriptionCache): Promise<void> {
+    await this.store.set('subscription', cache);
+  }
+
+  listVault(): Promise<VaultEntry[]> {
+    return this.store.get<VaultEntry[]>('vault', []);
+  }
+
+  async upsertVaultEntry(entry: VaultEntry): Promise<void> {
+    const all = await this.listVault();
+    const i = all.findIndex((e) => e.id === entry.id);
+    if (i >= 0) all[i] = entry;
+    else all.unshift(entry);
+    await this.store.set('vault', all);
+  }
+
+  async deleteVaultEntry(id: string): Promise<void> {
+    await this.store.set('vault', (await this.listVault()).filter((e) => e.id !== id));
+  }
+
+  async getPremiumPrefs(): Promise<PremiumPrefs> {
+    return { ...DEFAULT_PREMIUM_PREFS, ...(await this.store.get<Partial<PremiumPrefs>>('premiumPrefs', {})) };
+  }
+
+  async savePremiumPrefs(prefs: PremiumPrefs): Promise<void> {
+    await this.store.set('premiumPrefs', prefs);
+  }
+
   wipe(): Promise<void> {
     return this.store.clearAll();
   }
 }
+
+/** Latest signed entitlement and the clock watermark used to detect a phone clock set back. */
+export interface SubscriptionCache {
+  entitlement?: string;
+  maxSeenTime: number;
+  /** Unredeemed SafeHer Plus code for a loved one. */
+  familyCode?: string;
+  /** For one-tap renewal ("quick renew"); stays encrypted on the phone. */
+  lastProvider?: Provider;
+  lastMsisdn?: string;
+  lastPlanId?: PlanId;
+  /** Expiry for which the "plan ended" dialog was already shown. */
+  expiredNoticeFor?: number;
+  /** In-app payment awaiting approval, re-checked when the app is opened again. */
+  pendingPaymentId?: string;
+}
+
+const EMPTY_SUBSCRIPTION: SubscriptionCache = { maxSeenTime: 0 };
+
+export type VaultCategory = 'physical' | 'verbal' | 'threat' | 'economic' | 'sexual' | 'other';
+
+/** Evidence vault entry: stays on the phone, sealed with the device key like all other data. */
+export interface VaultEntry {
+  id: string;
+  createdAt: string;
+  incidentDate: string;
+  category: VaultCategory;
+  description: string;
+  place?: string;
+  witnesses?: string;
+}
+
+export interface PremiumPrefs {
+  fakeCallerName: string;
+  fakeCallDelaySec: number;
+  counsellingRequests: string[];
+}
+
+const DEFAULT_PREMIUM_PREFS: PremiumPrefs = { fakeCallerName: 'Maman', fakeCallDelaySec: 10, counsellingRequests: [] };
