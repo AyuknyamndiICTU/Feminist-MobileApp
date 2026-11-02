@@ -36,7 +36,15 @@
     "plugins": [
       "expo-router",
       "expo-secure-store",
-      "expo-status-bar"
+      "expo-status-bar",
+      [
+        "expo-notifications",
+        {
+          "icon": "./assets/android-icon-monochrome.png",
+          "color": "#5f6368"
+        }
+      ],
+      "./plugins/withLoopbackCleartext"
     ]
   }
 }
