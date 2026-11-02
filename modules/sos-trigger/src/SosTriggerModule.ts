@@ -23,6 +23,13 @@ declare class SosTriggerModule extends NativeModule<SosTriggerEvents> {
   endEnrollment(): Promise<void>;
   /** JSON array of alerts recorded by the service, removed from native storage once taken. */
   takePendingAlerts(): Promise<string>;
+  /** Safe Walk: SOS at `atMs` unless cancelled; optional SMS to the contacts now. */
+  scheduleCheckIn(atMs: number, smsText: string | null): Promise<{ exact: boolean; notified: number }>;
+  cancelCheckIn(): Promise<void>;
+  /** Deadline in ms since epoch, or 0 when no Safe Walk is running. */
+  getCheckIn(): number;
+  canScheduleExactAlarms(): boolean;
+  openExactAlarmSettings(): Promise<void>;
 }
 
 /** Android only; null on iOS, web and Expo Go, where the app falls back to in-app actions. */
